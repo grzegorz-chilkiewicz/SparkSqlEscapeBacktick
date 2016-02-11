@@ -2,7 +2,7 @@ import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Row, SQLContext}
 import org.apache.spark.{SparkContext, SparkConf}
 
-object SparkSqlContextTempTableIdentifier {
+object SparkSqlEscapeBacktick {
 
   private def identifierCheck(df: DataFrame, identifier: String): Unit = {
     df.registerTempTable(identifier)
@@ -18,12 +18,16 @@ object SparkSqlContextTempTableIdentifier {
     val sc = new SparkContext(sparkConf)
     val sqlContext = new SQLContext(sc)
 
+    val columnName = "col`s"
     val rows = List(Row("foo"), Row("bar"))
-    val schema = StructType(Seq(StructField("co`l", StringType)))
+    val schema = StructType(Seq(StructField(columnName, StringType)))
     val rdd = sc.parallelize(rows)
     val df = sqlContext.createDataFrame(rdd, schema)
 
-    val selectedDf = df.selectExpr("`co``l`")		// Exception will be thrown here
+    // Exception will be thrown here:
+    val selectingColumnName = "`" + columnName.replace("`", "``") + "`"
+    println("selectingColumnName=" + selectingColumnName)
+    val selectedDf = df.selectExpr(selectingColumnName)
 
     println("Print selectedDf content:")
     selectedDf.collect().foreach(println(_))
